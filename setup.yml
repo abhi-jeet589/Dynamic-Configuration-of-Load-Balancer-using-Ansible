@@ -1,0 +1,143 @@
+- name: "Playbook to install Apache Webserver at the Backend"
+  hosts: backend
+  vars_files:
+  - "backend_vars.yml"
+  tasks:
+  - name: "Copy ISO file from CN to MN"
+    copy:
+      src: "/root/rhel-8.0-x86_64-dvd.iso"
+      dest: "/RHEL-8-packages"
+
+  - name: "Create a directory for mount point"
+    file:
+      path: "{{  back_mount_point  }}"
+      state: directory
+
+  - name: "Mount the ISO file to the directory created"
+    mount:
+      path: "{{  back_mount_point  }}"
+      src: "/RHEL-8-packages"
+      fstype: "iso9660"
+      state: mounted
+
+  - name: "Configure yum for AppStream"
+    yum_repository:
+      name: "AppStream"
+      description: "Yum repo for Appstream"
+      baseurl: "file://{{  back_mount_point  }}/AppStream"
+      enabled: yes
+      gpgcheck: no
+
+      
+  - name: "Configure yum for BaseOS"
+    yum_repository:
+      name: "BaseOS"
+      description: "Yum repo for BaseOS"
+      baseurl: "file://{{  back_mount_point  }}/BaseOS"
+      enabled: yes
+      gpgcheck: no
+
+  - name: "Install Apache Webserver"
+    package:
+      name: "httpd"
+      state: present
+  
+  - name: "Install php"
+    package:
+      name: "php"
+      state: present
+
+  - name: "Create Document Root"
+    file:
+      path: "{{  document_root  }}"
+      state: directory
+
+  - name: "Copy Webpages"
+    copy:
+      dest: "{{  document_root  }}/index.php"
+      src: "/task12/webpage.php"
+ 
+  - name: "Add Firewall Rule"
+    firewalld:
+      port: "{{  backend_listen_port  }}/tcp"
+      state: enabled
+      permanent: yes
+      immediate: yes
+
+  - name: "Start the Service"
+    service:
+      name: "httpd"
+      state: started
+
+- name: "Install Haproxy at the Frontend"
+  hosts: frontend
+  vars_files:
+  - "frontend_vars.yml"
+  - "backend_vars.yml"
+  tasks:
+  - name: "Copy ISO file from CN to MN"
+    copy:
+      src: "/root/rhel-8.0-x86_64-dvd.iso"
+      dest: "/RHEL-8-packages"
+
+  - name: "Create a directory for mount point"
+    file:
+      path: "{{  front_mount_point  }}"
+      state: directory
+
+  - name: "Mount the ISO file to the directory created"
+    mount:
+      path: "{{  front_mount_point  }}"
+      src: "/RHEL-8-packages"
+      fstype: "iso9660"
+      state: mounted
+
+  - name: "Configure yum for AppStream"
+    yum_repository:
+      name: "AppStream"
+      description: "Yum repo for Appstream"
+      baseurl: "file://{{  front_mount_point  }}/AppStream"
+      enabled: yes
+      gpgcheck: no
+
+      
+  - name: "Configure yum for BaseOS"
+    yum_repository:
+      name: "BaseOS"
+      description: "Yum repo for BaseOS"
+      baseurl: "file://{{  front_mount_point  }}/BaseOS"
+      enabled: yes
+      gpgcheck: no
+
+  - name: "Install Haproxy"
+    package:
+      name: "haproxy"
+      state: present
+
+  - name: "Configure Haproxy"
+    template:
+      dest: "/etc/haproxy/haproxy.cfg"
+      src: "haproxy_config.cfg.j2"
+    notify: "Restart Haproxy"
+
+  - name: "Add Firewall Rule"
+    firewalld:
+      port: "{{  frontend_listen_port  }}/tcp"
+      state: enabled
+      permanent: yes
+      immediate: yes
+
+  - name: "Start Haproxy service"
+    service:
+      name: "haproxy"
+      state: started
+
+  handlers:
+  - name: "Restart Haproxy"
+    service:
+      name: "haproxy"
+      state: restarted
+
+
+
+

@@ -1,0 +1,2 @@
+- front_mount_point: "/dvd1"
+- frontend_listen_port: "8080"

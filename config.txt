@@ -1,0 +1,6 @@
+[frontend]
+192.168.0.106 ansible_user=root ansible_password=redhat ansible_connection=ssh
+
+[backend]
+192.168.0.107 ansible_user=root ansible_password=redhat ansible_connection=ssh
+192.168.0.103 ansible_user=root ansible_password=redhat ansible_connection=ssh
